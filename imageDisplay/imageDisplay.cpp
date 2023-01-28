@@ -1,8 +1,8 @@
 /*
-* name: Di Zhang
-* date: Jan 25, 2023
-* course: CS5330 - Computer Vision
-*/
+ * Di Zhang
+ * Jan 25, 2023
+ * CS5330 - Computer Vision
+ */
 #include <opencv2/highgui.hpp>
 #include <iostream>
 int main( int argc, char** argv )
