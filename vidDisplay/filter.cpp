@@ -10,6 +10,8 @@
 
 #include "filter.h"
 
+using namespace std;
+
 int greyscale(cv::Mat &src, cv::Mat &dst){
     cv::Mat differentChannels[3];
     cv::split(src, differentChannels);
@@ -87,19 +89,170 @@ int blur5x5(cv::Mat &src, cv::Mat &dst) {
     return 0;
 }
 
+// sobelX filter
+// [-1, 0, 1]                 [1]
+// [-2, 0, 2] = [-1, 0, 1] x  [2]
+// [-1, 0, 1]                 [1]
 int sobelX3x3( cv::Mat &src, cv::Mat &dst ) {
+
+    // allocate temp space
+    cv::Mat temp;
+    temp = cv::Mat::zeros(src.size(), CV_16SC3);
+    
+    // allocate destination space
+    dst = cv::Mat::zeros(src.size(), CV_16SC3);
+
+    // loop through src and apply vertical filter
+    // go through rows
+    for (int i = 1; i < src.rows-1; i++) {
+        
+        // source row pointer
+        cv::Vec3b *rowptr1 = src.ptr<cv::Vec3b>(i-1);
+        cv::Vec3b *rowptr2 = src.ptr<cv::Vec3b>(i);
+        cv::Vec3b *rowptr3 = src.ptr<cv::Vec3b>(i+1);
+    
+        // destination pointer
+        cv::Vec3s *tempptr = temp.ptr<cv::Vec3s>(i);
+
+        // go through columes
+        for (int j = 0; j < src.cols; j++) {
+            
+            // go though each color channels
+            for (int k = 0; k < 3; k++) {
+                tempptr[j][k] = (1 * rowptr1[j][k] + 2 * rowptr2[j][k] + 1 * rowptr3[j][k])/4;
+            }
+        }
+    }
+
+    // loop through temp and apply horizontal filter
+    // go through rows
+    for (int i = 0; i < temp.rows; i++) {
+
+        // temp col pointer
+        cv::Vec3s *rowptr = temp.ptr<cv::Vec3s>(i);
+
+        // destination pointer
+        cv::Vec3s *destptr = dst.ptr<cv::Vec3s>(i);
+        
+        // go through rows
+        for (int j = 1; j < temp.cols-1; j++) {
+            // go though each color channels
+            for (int k = 0; k < 3; k++) {
+                destptr[j][k] = -1 * rowptr[j-1][k] + 1 * rowptr[j+1][k];
+            }
+        } 
+    }
+    
     return 0;
 }
 
+// sobelY filter
+// [ 1, 2, 1]                [ 1]
+// [ 0, 0, 0] = [1, 2, 1] x  [ 0]
+// [-1,-2,-1]                [-1]
 int sobelY3x3( cv::Mat &src, cv::Mat &dst ) {
+     // allocate temp space
+    cv::Mat temp;
+    temp = cv::Mat::zeros(src.size(), CV_16SC3);
+    
+    // allocate destination space
+    dst = cv::Mat::zeros(src.size(), CV_16SC3);
+
+    // loop through src and apply vertical filter
+    // go through rows
+    for (int i = 1; i < src.rows-1; i++) {
+        
+        // source row pointer
+        cv::Vec3b *rowptr1 = src.ptr<cv::Vec3b>(i-1);
+        cv::Vec3b *rowptr2 = src.ptr<cv::Vec3b>(i);
+        cv::Vec3b *rowptr3 = src.ptr<cv::Vec3b>(i+1);
+    
+        // destination pointer
+        cv::Vec3s *tempptr = temp.ptr<cv::Vec3s>(i);
+
+        // go through columes
+        for (int j = 0; j < src.cols; j++) {
+            
+            // go though each color channels
+            for (int k = 0; k < 3; k++) {
+                tempptr[j][k] = -1 * rowptr1[j][k] + 1 * rowptr3[j][k];
+            }
+        }
+    }
+
+    // loop through temp and apply horizontal filter
+    // go through rows
+    for (int i = 0; i < temp.rows; i++) {
+
+        // temp col pointer
+        cv::Vec3s *rowptr = temp.ptr<cv::Vec3s>(i);
+
+        // destination pointer
+        cv::Vec3s *destptr = dst.ptr<cv::Vec3s>(i);
+        
+        // go through rows
+        for (int j = 1; j < temp.cols-1; j++) {
+            // go though each color channels
+            for (int k = 0; k < 3; k++) {
+                destptr[j][k] = (1 * rowptr[j-1][k] + 2 * rowptr[j][k] + 1 * rowptr[j+1][k])/4;
+            }
+        } 
+    }
+    
     return 0;
 }
 
 int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ) {
+    // allocate destination space
+    dst = cv::Mat::zeros(sx.size(), CV_16SC3);
+
+    // loop through src and apply vertical filter
+    // go through rows
+    for (int i = 0; i < sx.rows; i++) {
+        
+        // source row pointer
+        cv::Vec3s *rowptrsx = sx.ptr<cv::Vec3s>(i);
+        cv::Vec3s *rowptrsy = sy.ptr<cv::Vec3s>(i);
+    
+        // destination pointer
+        cv::Vec3s *dstptr = dst.ptr<cv::Vec3s>(i);
+
+        // go through columes
+        for (int j = 0; j < sx.cols; j++) {
+            
+            // go though each color channels
+            for (int k = 0; k < 3; k++) {
+                dstptr[j][k] = sqrt((rowptrsx[j][k] * rowptrsx[j][k]) + (rowptrsy[j][k] * rowptrsy[j][k]));
+            }
+        }
+    }
+
     return 0;
 }
 
 int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ) {
+    // allocates destination space
+    dst = cv::Mat::zeros(src.size(), CV_8UC3);
+
+    // size of buckets
+    int bucketSize = 255/levels;
+    // loop through src and apply quantizer
+    // go through rows
+    for (int i = 0; i < src.rows; i++) {
+        // source pointer
+        cv::Vec3s *rowptr = src.ptr<cv::Vec3s>(i);
+        
+        // destination pointer
+        cv::Vec3s *dstptr = dst.ptr<cv::Vec3s>(i);
+
+        // go through cols
+        for (int j = 0; j < src.cols; j++) {
+            for (int k = 0; k < 3; k++) {
+                int xt = rowptr[j][k] / bucketSize;
+                dstptr[j][k] = xt * bucketSize;
+            }
+        }
+    }
     return 0;
 }
 
