@@ -24,8 +24,6 @@ int greyscale(cv::Mat &src, cv::Mat &dst){
 
 int blur5x5(cv::Mat &src, cv::Mat &dst) {
 
-    //cv::GaussianBlur(src, dst, cv::Size(5, 5), 0);
-
     // allocate temp space
     cv::Mat temp;
     temp = cv::Mat::zeros(src.size(), CV_8UC3);
@@ -267,35 +265,30 @@ int cartoon( cv::Mat &src, cv::Mat&dst, int levels, int magThreshold ) {
     magnitude(sobelx, sobely, mag);
 
     // quantize and blur
-    blurQuantize(mag, quantize, levels);
+    blurQuantize(src, quantize, levels);
 
     // allocate destination space
-    dst = cv::Mat::zeros(quantize.size(), CV_16SC3);
+    dst = quantize.clone();
 
-    for (int i = 0; i < quantize.rows; i++) {
+    for (int i = 0; i < dst.rows; i++) {
         
         // src pointer
-        cv::Vec3b *rowptr = quantize.ptr<cv::Vec3b>(i);
+        cv::Vec3s *rowptr = mag.ptr<cv::Vec3s>(i);
 
         // destination pointer
         cv::Vec3b *dstptr = dst.ptr<cv::Vec3b>(i);
 
-        for (int j = 0; j < quantize.cols; j++) {
+        for (int j = 0; j < dst.cols; j++) {
            
-            int mmax = std::max(std::max(rowptr[j][0], rowptr[j][1]), rowptr[j][2]);
-            if (mmax > magThreshold) {
+            if (rowptr[j][0] > magThreshold || rowptr[j][1] > magThreshold || rowptr[j][2] > magThreshold) {
                 dstptr[j][0] = 0;
                 dstptr[j][1] = 0;
                 dstptr[j][2] = 0;
-            } else {
-                dstptr[j][0] = rowptr[j][0];
-                dstptr[j][1] = rowptr[j][1];
-                dstptr[j][2] = rowptr[j][2];
             }
         }
 
     }
-    
+  
     return 0;
 }
 

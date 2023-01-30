@@ -18,6 +18,7 @@ open the project in vscode and open a terminal window and make sure you are in t
 
 ### Basic requirments
 
+- `s` - save image
 - `g` - greyscale filter (using opencv function cvtColor)
 - `h` - greyscale filter (copy green channel to the other two channels)
 - `b` - Gaussian blur filter
@@ -28,11 +29,11 @@ open the project in vscode and open a terminal window and make sure you are in t
 - `c` - cartoonization
 - `o` - negative image
 - `n` - romve filter and change stream to normal
-- `s` - save image with or without filter
 - `q` - quit the program
 
 ### Extensions
 
+- `s` - save image with filters & enable user to name the saved image
 ## Demo Video
 
 

@@ -10,8 +10,6 @@
 
 #include "filter.h"
 
-using namespace std;
-
 int main(int argc, char *argv[])
 {
     cv::VideoCapture *capdev;
@@ -36,9 +34,6 @@ int main(int argc, char *argv[])
 
     // create video writer object
     cv::VideoWriter record("record.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 5, cv::Size(refS.width, refS.height));
-
-    cv::Mat square = cv::imread("square.png"); 
-    cv::Mat lena = cv::imread("lena.png");
 
     int noarg = argc;
     for (;;)
@@ -81,16 +76,9 @@ int main(int argc, char *argv[])
         // Q5
         if (key == 'b' || checker == 'b') {
 
-            cv::Mat img = cv::imread("lena.png");
             cv::Mat gusFrame;
-            
-            cv::namedWindow("gusFrame", 1);
-            cv::namedWindow("original img", 1);
-            blur5x5(img, gusFrame);
-
-            cv::imshow("original img", img);
-            cv::imshow("gusFrame", gusFrame);
-            //frame = gusFrame;
+            blur5x5(frame, gusFrame);
+            frame = gusFrame;
             checker = 'b';
             
         }
@@ -99,11 +87,8 @@ int main(int argc, char *argv[])
         if (key == 'x' || checker == 'x') {
             cv::Mat displayFrameX;
             cv::Mat sobelxFrame;
-            cv::namedWindow("sobelxFrame", 1);
             sobelX3x3(frame, sobelxFrame);
             cv::convertScaleAbs(sobelxFrame, displayFrameX);
-
-            //cv::imshow("sobelxFrame", displayFrameX);
             frame = displayFrameX;
             checker = 'x';
         }
@@ -111,11 +96,9 @@ int main(int argc, char *argv[])
         if (key == 'y' || checker == 'y') {
             cv::Mat displayFrameY;
             cv::Mat sobelyFrame;
-            cv::namedWindow("sobelyFrame", 1);
-            sobelY3x3(square, sobelyFrame);
+            sobelY3x3(frame, sobelyFrame);
             cv::convertScaleAbs(sobelyFrame, displayFrameY);
-            cv::imshow("sobelyFrame", displayFrameY);
-            //frame = displayFrameY;
+            frame = displayFrameY;
             checker = 'y';
         }
 
@@ -126,13 +109,11 @@ int main(int argc, char *argv[])
             cv::Mat displayFrame;
             cv::Mat sobelX;
             cv::Mat sobelY;
-            sobelX3x3(square, sobelX);
-            sobelY3x3(square, sobelY);
-
-            cv::namedWindow("magWindows", 1);
+            sobelX3x3(frame, sobelX);
+            sobelY3x3(frame, sobelY);
             magnitude(sobelX, sobelY, magFrame);       
             cv::convertScaleAbs(magFrame, displayFrame);
-            cv:imshow("magWindows", displayFrame);
+            frame = displayFrame;
             checker = 'm';
             
         }
@@ -140,12 +121,8 @@ int main(int argc, char *argv[])
         // Q8
         if (key == 'l' || checker == 'l') {
             cv::Mat quanFrame;
-
-            cv::namedWindow("quanWindows", 1); 
-           
-            blurQuantize(lena, quanFrame, 5);
-            cv::imshow("quanWindows", quanFrame);
-
+            blurQuantize(frame, quanFrame, 10);
+            frame = quanFrame;
             checker = 'l';            
         }
 
@@ -153,15 +130,10 @@ int main(int argc, char *argv[])
         if (key == 'c' || checker == 'c') {
             cv::Mat cartoonFrame;
             cv::Mat displayFrame;
-            
-            // initilize frame window
-            cv::namedWindow("cartoonFrame", 1);
 
             // cartoon(src, dest, levels, magThreadhold);
-            cartoon(lena, cartoonFrame, 10, 100);
-            //cv::convertScaleAbs(cartoonFrame, displayFrame);
-
-            cv::imshow("cartoonFrame", cartoonFrame);
+            cartoon(frame, cartoonFrame, 10, 25);
+            frame = cartoonFrame;
             checker = 'c';
             
         }
@@ -171,13 +143,8 @@ int main(int argc, char *argv[])
         if (key == 'o' || checker == 'o') {
             
             cv::Mat negFrame;
-            cv::Mat displayFrame;
-
-            // initilize frame window
-            //cv::namedWindow("negFrame", 1);
             negative(frame, negFrame);
             frame = negFrame;
-            //cv::imshow("negFrame", negFrame);
             checker = 'o';
         }
 
@@ -192,36 +159,34 @@ int main(int argc, char *argv[])
         if (key == 'z') {
             record.release();
             recording = '\0';
-            string filename;
-            string avi = ".avi";
+            std::string filename;
+            std::string avi = ".avi";
             while (true) {
-                cout << "Enter recording name: ";
-                getline(cin, filename);
+                std::cout << "Enter recording name: ";
+                std::getline(std::cin, filename);
                 int result = rename("record.avi", (filename + avi).c_str());
                 if (result == 0) {
                     break;
                 }
             }
-        }
-        
+        }    
         
         // Q2
         // save the frame at the moment when pressing the 's' key
         if (key == 's') {
             cv::imwrite("capture.png", frame);
 
-            string filename;
-            string png = ".png";
+            std::string filename;
+            std::string png = ".png";
             while (true) {
-                cout << "Enter image name: ";
-                getline(cin, filename);
+                std::cout << "Enter image name: ";
+                std::getline(std::cin, filename);
                 int result = rename("capture.png", (filename + png).c_str());
                 if (result == 0) {
                     break;
                 }
             }
         }
-
 
         // undo filters back to normal
         if (key == 'n') {
