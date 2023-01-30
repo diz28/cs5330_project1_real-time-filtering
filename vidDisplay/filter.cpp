@@ -10,8 +10,6 @@
 
 #include "filter.h"
 
-using namespace std;
-
 int greyscale(cv::Mat &src, cv::Mat &dst){
     cv::Mat differentChannels[3];
     cv::split(src, differentChannels);
@@ -66,11 +64,7 @@ int blur5x5(cv::Mat &src, cv::Mat &dst) {
     for (int i = 0; i < temp.rows; i++) {
         
         // temp col pointer
-        //cv::Vec3b *rowptr1 = temp.ptr<cv::Vec3b>(i-2);
-        //cv::Vec3b *rowptr2 = temp.ptr<cv::Vec3b>(i-1);
         cv::Vec3b *rowptr = temp.ptr<cv::Vec3b>(i);
-        //cv::Vec3b *rowptr4 = temp.ptr<cv::Vec3b>(i+1);
-        //cv::Vec3b *rowptr5 = temp.ptr<cv::Vec3b>(i+2);
     
         // destination pointer
         cv::Vec3b *destptr = dst.ptr<cv::Vec3b>(i);
@@ -231,22 +225,26 @@ int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ) {
 }
 
 int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ) {
+    cv::Mat blur;
+    blur5x5(src, blur);
+
     // allocates destination space
-    dst = cv::Mat::zeros(src.size(), CV_8UC3);
+    dst = cv::Mat::zeros(blur.size(), CV_8UC3);
 
     // size of buckets
     int bucketSize = 255/levels;
-    // loop through src and apply quantizer
+
+    // loop through blur and apply quantizer
     // go through rows
-    for (int i = 0; i < src.rows; i++) {
+    for (int i = 0; i < blur.rows; i++) {
         // source pointer
-        cv::Vec3s *rowptr = src.ptr<cv::Vec3s>(i);
+        cv::Vec3b *rowptr = blur.ptr<cv::Vec3b>(i);
         
         // destination pointer
-        cv::Vec3s *dstptr = dst.ptr<cv::Vec3s>(i);
+        cv::Vec3b *dstptr = dst.ptr<cv::Vec3b>(i);
 
         // go through cols
-        for (int j = 0; j < src.cols; j++) {
+        for (int j = 0; j < blur.cols; j++) {
             for (int k = 0; k < 3; k++) {
                 int xt = rowptr[j][k] / bucketSize;
                 dstptr[j][k] = xt * bucketSize;
@@ -257,5 +255,72 @@ int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ) {
 }
 
 int cartoon( cv::Mat &src, cv::Mat&dst, int levels, int magThreshold ) {
+
+    cv::Mat sobelx;
+    cv::Mat sobely;
+    cv::Mat mag;
+    cv::Mat quantize;
+
+    // get the magnitude image
+    sobelX3x3(src, sobelx);
+    sobelY3x3(src, sobely);
+    magnitude(sobelx, sobely, mag);
+
+    // quantize and blur
+    blurQuantize(mag, quantize, levels);
+
+    // allocate destination space
+    dst = cv::Mat::zeros(quantize.size(), CV_16SC3);
+
+    for (int i = 0; i < quantize.rows; i++) {
+        
+        // src pointer
+        cv::Vec3b *rowptr = quantize.ptr<cv::Vec3b>(i);
+
+        // destination pointer
+        cv::Vec3b *dstptr = dst.ptr<cv::Vec3b>(i);
+
+        for (int j = 0; j < quantize.cols; j++) {
+           
+            int mmax = std::max(std::max(rowptr[j][0], rowptr[j][1]), rowptr[j][2]);
+            if (mmax > magThreshold) {
+                dstptr[j][0] = 0;
+                dstptr[j][1] = 0;
+                dstptr[j][2] = 0;
+            } else {
+                dstptr[j][0] = rowptr[j][0];
+                dstptr[j][1] = rowptr[j][1];
+                dstptr[j][2] = rowptr[j][2];
+            }
+        }
+
+    }
+    
+    return 0;
+}
+
+
+
+int negative(cv::Mat &src, cv::Mat &dst) {
+
+    // initilize destination image
+    dst = cv::Mat::zeros(src.size(), CV_8UC3);
+
+    for (int i = 0; i < src.rows; i++) {
+
+        // row ptr
+        cv::Vec3b *rowptr = src.ptr<cv::Vec3b>(i);
+        // destination ptr
+        cv::Vec3b *dstptr = dst.ptr<cv::Vec3b>(i);
+
+        for (int j = 0; j < src.cols; j++) {
+            dstptr[j][0] = 255 - rowptr[j][0];
+            dstptr[j][1] = 255 - rowptr[j][1];
+            dstptr[j][2] = 255 - rowptr[j][2];
+        }
+    }
+
+    
+
     return 0;
 }

@@ -32,13 +32,22 @@ int main(int argc, char *argv[])
     cv::namedWindow("Video", 1); // identifies a window
     cv::Mat frame;
     char checker;
+    char recording;
+
+    // create video writer object
+    cv::VideoWriter record("record.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 5, cv::Size(refS.width, refS.height));
 
     cv::Mat square = cv::imread("square.png"); 
     cv::Mat lena = cv::imread("lena.png");
 
+    int noarg = argc;
     for (;;)
     {
-        *capdev >> frame; // get a new frame from the camera, treat as a stream
+        if (noarg > 1) {
+            frame = cv::imread(argv[1]);
+        } else {
+            *capdev >> frame; // get a new frame from the camera, treat as a stream
+        }
 
         if (frame.empty())
         {
@@ -59,12 +68,6 @@ int main(int argc, char *argv[])
             checker = 'g';
         }
 
-        // Q2
-        // save the frame at the moment when pressing the 's' key
-        if (key == 's') {
-            cv::imwrite("capture.png", frame);
-        }
-
         // Q4
         if (key == 'h' || checker == 'h') {
             // allocated new image space for greyscale image
@@ -78,17 +81,16 @@ int main(int argc, char *argv[])
         // Q5
         if (key == 'b' || checker == 'b') {
 
-            //cv::Mat img = cv::imread("lena.png");
-            
+            cv::Mat img = cv::imread("lena.png");
             cv::Mat gusFrame;
             
-            blur5x5(frame, gusFrame);
-            
-            //cv::convertScaleAbs(gusFrame, displayFrame);
-            //cv::imshow("gusFrame", gusFrame);
-            //cv::waitKey(0);
-            //cv::destroyWindow("gusFrame");
-            frame = gusFrame;
+            cv::namedWindow("gusFrame", 1);
+            cv::namedWindow("original img", 1);
+            blur5x5(img, gusFrame);
+
+            cv::imshow("original img", img);
+            cv::imshow("gusFrame", gusFrame);
+            //frame = gusFrame;
             checker = 'b';
             
         }
@@ -98,12 +100,11 @@ int main(int argc, char *argv[])
             cv::Mat displayFrameX;
             cv::Mat sobelxFrame;
             cv::namedWindow("sobelxFrame", 1);
-            sobelX3x3(square, sobelxFrame);
+            sobelX3x3(frame, sobelxFrame);
             cv::convertScaleAbs(sobelxFrame, displayFrameX);
 
-            cv::imshow("sobelxFrame", displayFrameX);
-            //displayFrameX.copyTo(frameXCopy);
-            //frame = displayFrameX;
+            //cv::imshow("sobelxFrame", displayFrameX);
+            frame = displayFrameX;
             checker = 'x';
         }
 
@@ -139,39 +140,90 @@ int main(int argc, char *argv[])
         // Q8
         if (key == 'l' || checker == 'l') {
             cv::Mat quanFrame;
-            cv::Mat displayFrame;
-            cv::Mat blurLena;
 
-            cv::Size sizel = lena.size();
-            cout << "lean height " << sizel.height << endl;
-
-            cv::namedWindow("quanWindows", 1);
-            blur5x5(lena, blurLena);
-
-            cv::Size sizeb = blurLena.size();
-            cout << "blurLena height " << sizeb.height << endl;
-
-            blurQuantize(blurLena, quanFrame, 15);
-
-            cv::Size sizeq = quanFrame.size();
-            cout << "quanFranme height " << sizeq.height << endl;
-            cv::convertScaleAbs(quanFrame, displayFrame);
-            cv::imshow("quanWindows", displayFrame);
+            cv::namedWindow("quanWindows", 1); 
+           
+            blurQuantize(lena, quanFrame, 5);
+            cv::imshow("quanWindows", quanFrame);
 
             checker = 'l';            
         }
 
         // Q9
-        if (key == 'c') {
+        if (key == 'c' || checker == 'c') {
+            cv::Mat cartoonFrame;
+            cv::Mat displayFrame;
+            
+            // initilize frame window
+            cv::namedWindow("cartoonFrame", 1);
+
+            // cartoon(src, dest, levels, magThreadhold);
+            cartoon(lena, cartoonFrame, 10, 100);
+            //cv::convertScaleAbs(cartoonFrame, displayFrame);
+
+            cv::imshow("cartoonFrame", cartoonFrame);
+            checker = 'c';
             
         }
 
-        // Additional taskes
-        
-        // brightness adjustment
-        
+        // Q10
+        // display a negative image
+        if (key == 'o' || checker == 'o') {
+            
+            cv::Mat negFrame;
+            cv::Mat displayFrame;
 
-        // change grayscale back to color
+            // initilize frame window
+            //cv::namedWindow("negFrame", 1);
+            negative(frame, negFrame);
+            frame = negFrame;
+            //cv::imshow("negFrame", negFrame);
+            checker = 'o';
+        }
+
+        // extensions
+        // start recording
+        if (key == 'r' || recording == 'r') {
+            record.write(frame);
+            recording = 'r';
+        }
+
+        // stop recording
+        if (key == 'z') {
+            record.release();
+            recording = '\0';
+            string filename;
+            string avi = ".avi";
+            while (true) {
+                cout << "Enter recording name: ";
+                getline(cin, filename);
+                int result = rename("record.avi", (filename + avi).c_str());
+                if (result == 0) {
+                    break;
+                }
+            }
+        }
+        
+        
+        // Q2
+        // save the frame at the moment when pressing the 's' key
+        if (key == 's') {
+            cv::imwrite("capture.png", frame);
+
+            string filename;
+            string png = ".png";
+            while (true) {
+                cout << "Enter image name: ";
+                getline(cin, filename);
+                int result = rename("capture.png", (filename + png).c_str());
+                if (result == 0) {
+                    break;
+                }
+            }
+        }
+
+
+        // undo filters back to normal
         if (key == 'n') {
             checker = '\0';
         }
