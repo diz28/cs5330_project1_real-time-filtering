@@ -12,10 +12,13 @@
 
 int main(int argc, char *argv[])
 {
+    // capture live cam video stream
     cv::VideoCapture *capdev;
 
     // open the video device
     capdev = new cv::VideoCapture(0);
+    
+    // error checking
     if (!capdev->isOpened())
     {
         printf("Unable to open video device\n");
@@ -28,24 +31,30 @@ int main(int argc, char *argv[])
     printf("Expected size: %d %d\n", refS.width, refS.height);
 
     cv::namedWindow("Video", 1); // identifies a window
+    
+    // frame - live stream frame or image fream
     cv::Mat frame;
+    // flag - help to keep the filter alive
     char checker;
+    // flag - help to keep the recording running
     char recording;
 
     // create video writer object
     cv::VideoWriter record("record.avi", cv::VideoWriter::fourcc('M', 'J', 'P', 'G'), 5, cv::Size(refS.width, refS.height));
 
+    // no. of command line parameters
     int noarg = argc;
     for (;;)
     {
+        // checking if user want to use live cam stream or image
         if (noarg > 1) {
             frame = cv::imread(argv[1]);
         } else {
             *capdev >> frame; // get a new frame from the camera, treat as a stream
         }
 
-        if (frame.empty())
-        {
+        // error check
+        if (frame.empty()) {
             printf("frame is empty\n");
             break;
         }
@@ -59,25 +68,29 @@ int main(int argc, char *argv[])
         // Q3
         // change video to grayscale
         if (key == 'g' || checker == 'g') {
+            // use opencv function to change img to greyscale
             cv::cvtColor(frame, frame, cv::COLOR_BGR2GRAY);
             checker = 'g';
         }
 
         // Q4
         if (key == 'h' || checker == 'h') {
-            // allocated new image space for greyscale image
-            cv::Mat greyFrame(frame.rows, frame.cols, CV_8UC3);
+            // initilize parameters
+            cv::Mat greyFrame;
             // call greyscale function in filter source file
             greyscale(frame, greyFrame);
+            // shallow copy converted frame back to 'frame'
             frame = greyFrame;
             checker = 'h';
         }
 
         // Q5
         if (key == 'b' || checker == 'b') {
-
+            // initilize parameters
             cv::Mat gusFrame;
+            // convert frame to greyscale using function built from scrach
             blur5x5(frame, gusFrame);
+            // shallow copy converted frame back to 'frame'm
             frame = gusFrame;
             checker = 'b';
             
@@ -85,8 +98,10 @@ int main(int argc, char *argv[])
 
         // Q6    
         if (key == 'x' || checker == 'x') {
+            // initilize parameters
             cv::Mat displayFrameX;
             cv::Mat sobelxFrame;
+            // filter function
             sobelX3x3(frame, sobelxFrame);
             cv::convertScaleAbs(sobelxFrame, displayFrameX);
             frame = displayFrameX;
@@ -94,9 +109,12 @@ int main(int argc, char *argv[])
         }
 
         if (key == 'y' || checker == 'y') {
+            // initilize parameters
             cv::Mat displayFrameY;
             cv::Mat sobelyFrame;
+            // filter function
             sobelY3x3(frame, sobelyFrame);
+            // convert negative values to positive for display purposes
             cv::convertScaleAbs(sobelyFrame, displayFrameY);
             frame = displayFrameY;
             checker = 'y';
@@ -104,14 +122,17 @@ int main(int argc, char *argv[])
 
         // Q7
         if (key == 'm' || checker == 'm') {
-
+            // initilize parameters
             cv::Mat magFrame;
             cv::Mat displayFrame;
             cv::Mat sobelX;
             cv::Mat sobelY;
+            // use previous functions to calculate maginitude
             sobelX3x3(frame, sobelX);
             sobelY3x3(frame, sobelY);
-            magnitude(sobelX, sobelY, magFrame);       
+            // call mag function to filter image
+            magnitude(sobelX, sobelY, magFrame);
+            // convert negative values to positive for display purposes
             cv::convertScaleAbs(magFrame, displayFrame);
             frame = displayFrame;
             checker = 'm';
@@ -120,7 +141,9 @@ int main(int argc, char *argv[])
 
         // Q8
         if (key == 'l' || checker == 'l') {
+            // initilize parameters
             cv::Mat quanFrame;
+            // call blurQuantize function to filter image
             blurQuantize(frame, quanFrame, 10);
             frame = quanFrame;
             checker = 'l';            
@@ -128,10 +151,12 @@ int main(int argc, char *argv[])
 
         // Q9
         if (key == 'c' || checker == 'c') {
+            // initilize parameters
             cv::Mat cartoonFrame;
             cv::Mat displayFrame;
 
             // cartoon(src, dest, levels, magThreadhold);
+            // call cartoon function to filter image
             cartoon(frame, cartoonFrame, 10, 25);
             frame = cartoonFrame;
             checker = 'c';
@@ -142,13 +167,30 @@ int main(int argc, char *argv[])
         // display a negative image
         if (key == 'o' || checker == 'o') {
             
+            // initilize parameters
             cv::Mat negFrame;
+            // call negative function to filter image
             negative(frame, negFrame);
             frame = negFrame;
             checker = 'o';
         }
 
         // extensions
+
+        // laplacian filter
+        // another edge detecter filer
+        if (key == 'p' || checker == 'p') {
+            // initilize parameters
+            cv::Mat lapFrame;
+            cv::Mat displayFrame;
+            // call lapFunction
+            laplacian(frame, lapFrame);
+            // convert negtive to positives
+            cv::convertScaleAbs(lapFrame, displayFrame);
+            frame = displayFrame;
+            checker = 'p';
+        }
+
         // start recording
         if (key == 'r' || recording == 'r') {
             record.write(frame);
@@ -171,6 +213,11 @@ int main(int argc, char *argv[])
             }
         }    
         
+        // undo filters back to normal
+        if (key == 'n') {
+            checker = '\0';
+        }
+
         // Q2
         // save the frame at the moment when pressing the 's' key
         if (key == 's') {
@@ -187,14 +234,9 @@ int main(int argc, char *argv[])
                 }
             }
         }
-
-        // undo filters back to normal
-        if (key == 'n') {
-            checker = '\0';
-        }
+        // show image in window
         cv::imshow("Video", frame);
     }
-
     delete capdev;
     return (0);
 }

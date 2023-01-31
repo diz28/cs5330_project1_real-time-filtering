@@ -11,25 +11,26 @@
 #include "filter.h"
 
 int greyscale(cv::Mat &src, cv::Mat &dst){
+    // split color channels
     cv::Mat differentChannels[3];
     cv::split(src, differentChannels);
+    // assign different channels to their cooressponding letters
     cv::Mat b = differentChannels[0];
     cv::Mat g = differentChannels[1];
     cv::Mat r = differentChannels[2];
+    // make all the other two channels equal to green 
     differentChannels[1] = differentChannels[0];
     differentChannels[2] = differentChannels[0];
+    // merge the channels back together
     cv::merge(differentChannels, 3, dst);
-    return (0);
+    return 0;
 }
 
 int blur5x5(cv::Mat &src, cv::Mat &dst) {
 
     // allocate temp space
     cv::Mat temp;
-    temp = cv::Mat::zeros(src.size(), CV_8UC3);
-    
-    // allocate destination space
-    dst = cv::Mat::zeros(src.size(), CV_8UC3);
+    temp = src.clone();
 
     // loop through src and apply vertical filter
     // go through rows
@@ -57,6 +58,9 @@ int blur5x5(cv::Mat &src, cv::Mat &dst) {
         
     }
 
+    // allocate destination space
+    dst = temp.clone();
+
     // loop through temp and apply horizontal filter
     // go through cols
     for (int i = 0; i < temp.rows; i++) {
@@ -72,6 +76,7 @@ int blur5x5(cv::Mat &src, cv::Mat &dst) {
     
             // go though each color channels
             for (int k = 0; k < 3; k++) {
+                // calculated blured channels
                 destptr[j][k] = (1 * rowptr[j-2][k] + 2 * rowptr[j-1][k] + 4 * rowptr[j][k] +
                                 2 * rowptr[j+1][k] + 1 * rowptr[j+2][k])/10;
             }
@@ -89,10 +94,8 @@ int sobelX3x3( cv::Mat &src, cv::Mat &dst ) {
 
     // allocate temp space
     cv::Mat temp;
-    temp = cv::Mat::zeros(src.size(), CV_16SC3);
-    
-    // allocate destination space
-    dst = cv::Mat::zeros(src.size(), CV_16SC3);
+    //temp = cv::Mat::zeros(src.size(), CV_16SC3);
+    temp.create(src.size(), CV_16SC3);
 
     // loop through src and apply vertical filter
     // go through rows
@@ -116,6 +119,10 @@ int sobelX3x3( cv::Mat &src, cv::Mat &dst ) {
         }
     }
 
+    // allocate destination space
+    //dst = cv::Mat::zeros(src.size(), CV_16SC3);
+    dst.create(temp.size(), CV_16SC3);
+
     // loop through temp and apply horizontal filter
     // go through rows
     for (int i = 0; i < temp.rows; i++) {
@@ -130,6 +137,7 @@ int sobelX3x3( cv::Mat &src, cv::Mat &dst ) {
         for (int j = 1; j < temp.cols-1; j++) {
             // go though each color channels
             for (int k = 0; k < 3; k++) {
+                // calculate sobel x channels 
                 destptr[j][k] = -1 * rowptr[j-1][k] + 1 * rowptr[j+1][k];
             }
         } 
@@ -145,10 +153,8 @@ int sobelX3x3( cv::Mat &src, cv::Mat &dst ) {
 int sobelY3x3( cv::Mat &src, cv::Mat &dst ) {
      // allocate temp space
     cv::Mat temp;
-    temp = cv::Mat::zeros(src.size(), CV_16SC3);
-    
-    // allocate destination space
-    dst = cv::Mat::zeros(src.size(), CV_16SC3);
+    // create temp
+    temp.create(src.size(), CV_16SC3);
 
     // loop through src and apply vertical filter
     // go through rows
@@ -167,10 +173,14 @@ int sobelY3x3( cv::Mat &src, cv::Mat &dst ) {
             
             // go though each color channels
             for (int k = 0; k < 3; k++) {
+                // calculate sobel y channels
                 tempptr[j][k] = -1 * rowptr1[j][k] + 1 * rowptr3[j][k];
             }
         }
     }
+        
+    // allocate destination space
+    dst.create(temp.size(), CV_16SC3);
 
     // loop through temp and apply horizontal filter
     // go through rows
@@ -196,7 +206,8 @@ int sobelY3x3( cv::Mat &src, cv::Mat &dst ) {
 
 int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ) {
     // allocate destination space
-    dst = cv::Mat::zeros(sx.size(), CV_16SC3);
+    //dst = cv::Mat::zeros(sx.size(), CV_16SC3);
+    dst = sx.clone();
 
     // loop through src and apply vertical filter
     // go through rows
@@ -214,20 +225,21 @@ int magnitude( cv::Mat &sx, cv::Mat &sy, cv::Mat &dst ) {
             
             // go though each color channels
             for (int k = 0; k < 3; k++) {
+                // calculate maginitude
                 dstptr[j][k] = sqrt((rowptrsx[j][k] * rowptrsx[j][k]) + (rowptrsy[j][k] * rowptrsy[j][k]));
             }
         }
     }
-
     return 0;
 }
 
 int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ) {
     cv::Mat blur;
+    // blur the img first before quantization
     blur5x5(src, blur);
 
     // allocates destination space
-    dst = cv::Mat::zeros(blur.size(), CV_8UC3);
+    dst = blur.clone();
 
     // size of buckets
     int bucketSize = 255/levels;
@@ -244,6 +256,7 @@ int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ) {
         // go through cols
         for (int j = 0; j < blur.cols; j++) {
             for (int k = 0; k < 3; k++) {
+                // quantization
                 int xt = rowptr[j][k] / bucketSize;
                 dstptr[j][k] = xt * bucketSize;
             }
@@ -253,7 +266,7 @@ int blurQuantize( cv::Mat &src, cv::Mat &dst, int levels ) {
 }
 
 int cartoon( cv::Mat &src, cv::Mat&dst, int levels, int magThreshold ) {
-
+    // initilize all the useful parameters
     cv::Mat sobelx;
     cv::Mat sobely;
     cv::Mat mag;
@@ -279,41 +292,69 @@ int cartoon( cv::Mat &src, cv::Mat&dst, int levels, int magThreshold ) {
         cv::Vec3b *dstptr = dst.ptr<cv::Vec3b>(i);
 
         for (int j = 0; j < dst.cols; j++) {
-           
+           // loop thru all the magnitude
             if (rowptr[j][0] > magThreshold || rowptr[j][1] > magThreshold || rowptr[j][2] > magThreshold) {
+                // make channels that are greater thatn the threashold black
                 dstptr[j][0] = 0;
                 dstptr[j][1] = 0;
                 dstptr[j][2] = 0;
             }
         }
-
     }
-  
     return 0;
 }
-
-
 
 int negative(cv::Mat &src, cv::Mat &dst) {
 
     // initilize destination image
-    dst = cv::Mat::zeros(src.size(), CV_8UC3);
-
+    dst = src.clone();
+    // loop thru src rows
     for (int i = 0; i < src.rows; i++) {
-
         // row ptr
         cv::Vec3b *rowptr = src.ptr<cv::Vec3b>(i);
         // destination ptr
         cv::Vec3b *dstptr = dst.ptr<cv::Vec3b>(i);
 
         for (int j = 0; j < src.cols; j++) {
+            // make all channels negative
             dstptr[j][0] = 255 - rowptr[j][0];
             dstptr[j][1] = 255 - rowptr[j][1];
             dstptr[j][2] = 255 - rowptr[j][2];
         }
     }
+    return 0;
+}
 
-    
+// [0  1  0]
+// [1 -4  1]
+// [0  1  0]
+// we could not implement a separable filter on of laplacian filter
+// but we still can make a filter from scrach with it
 
+int laplacian(cv::Mat &src, cv::Mat &dst) {
+
+    // initilize destination space
+    dst.create(src.size(), CV_16SC3);
+
+    // loop thru src rows
+    for (int i = 1; i < src.rows-1; i++) {
+        // src row ptr
+        cv::Vec3b *rowptr1 = src.ptr<cv::Vec3b>(i-1);
+        cv::Vec3b *rowptr2 = src.ptr<cv::Vec3b>(i);
+        cv::Vec3b *rowptr3 = src.ptr<cv::Vec3b>(i+1);
+
+        // destination ptr
+        cv::Vec3s *dstptr = dst.ptr<cv::Vec3s>(i);
+
+        // loop thru cols
+        for (int j = 1; j < src.cols-1; j++) {
+            // loop thru color channels
+            for (int k = 0; k < 3; k++) {
+                dstptr[j][k] =  1 * rowptr1[j][k] +
+                                1 * rowptr2[j-1][k] + -4 * rowptr2[j][k] + 1 * rowptr2[j+1][k] +
+                                1 * rowptr3[j][k];
+            }
+        }
+    }
     return 0;
 }
